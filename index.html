@@ -2,78 +2,94 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FFmpeg Command Generator</title>
     <style>
-        :root { --neon: #00f2ff; --bg: #0a0a0c; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; padding: 20px; }
-        .card { background: #16161a; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 600px; border: 1px solid #333; }
-        h2 { color: var(--neon); margin-top: 0; text-transform: uppercase; letter-spacing: 2px; font-size: 1.2rem; }
-        label { display: block; margin: 15px 0 5px; font-size: 0.9rem; color: #bbb; }
-        input, select { width: 100%; padding: 10px; background: #222; border: 1px solid #444; color: white; border-radius: 5px; box-sizing: border-box; }
-        input:focus { border-color: var(--neon); outline: none; }
-        .output-box { margin-top: 25px; background: #000; padding: 15px; border-left: 4px solid var(--neon); position: relative; }
-        code { word-break: break-all; font-family: 'Consolas', monospace; font-size: 0.9rem; color: #adff2f; }
-        button { background: var(--neon); color: black; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; transition: 0.3s; }
-        button:hover { background: #00c8d4; transform: translateY(-2px); }
-        .copy-hint { font-size: 0.7rem; color: var(--neon); margin-top: 5px; text-align: right; }
+        :root { --accent: #00f2ff; --bg: #0f172a; --card: #1e293b; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: #f8fafc; display: flex; justify-content: center; padding: 40px 20px; margin: 0; }
+        .container { background: var(--card); padding: 2rem; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 100%; max-width: 700px; border: 1px solid #334155; }
+        h1 { font-size: 1.5rem; color: var(--accent); margin-bottom: 1.5rem; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 1rem; }
+        .grid { display: grid; gap: 15px; grid-template-columns: 1fr 1fr; }
+        .full { grid-column: span 2; }
+        label { display: block; margin-bottom: 5px; font-size: 0.85rem; color: #94a3b8; font-weight: 600; }
+        input, select { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 8px; box-sizing: border-box; transition: all 0.2s; }
+        input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.1); }
+        .output-area { margin-top: 30px; background: #020617; border-radius: 8px; padding: 20px; border: 1px dashed #475569; position: relative; }
+        code { display: block; word-break: break-all; font-family: 'Fira Code', monospace; color: #38bdf8; line-height: 1.5; }
+        .btn-copy { background: var(--accent); color: #0f172a; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 800; width: 100%; margin-top: 15px; text-transform: uppercase; transition: 0.3s; }
+        .btn-copy:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .badge { font-size: 0.7rem; background: #334155; padding: 2px 8px; border-radius: 10px; margin-left: 5px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>⚡ FFmpeg Generator</h2>
+<div class="container">
+    <h1>⚡ FFmpeg Generator <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">v2026</span></h1>
     
-    <label>Chemin vers ffmpeg.exe</label>
-    <input type="text" id="exePath" value="C:\ffmpeg\bin\ffmpeg.exe" oninput="generate()">
+    <div class="grid">
+        <div class="full">
+            <label>Chemin de l'exécutable <span class="badge">ffmpeg.exe</span></label>
+            <input type="text" id="exe" value="C:\ffmpeg\bin\ffmpeg.exe" oninput="gen()">
+        </div>
+        
+        <div class="full">
+            <label>Fichier source (MKV, MP4, MOV...)</label>
+            <input type="text" id="src" placeholder="C:\Users\Ellie\Downloads\video.mkv" oninput="gen()">
+        </div>
 
-    <label>Chemin du fichier source (MKV/MP4...)</label>
-    <input type="text" id="videoPath" placeholder="C:\Users\Nom\Downloads\video.mkv" oninput="generate()">
+        <div>
+            <label>Qualité (CRF)</label>
+            <select id="crf" onchange="gen()">
+                <option value="17">17 (Ultra Haute)</option>
+                <option value="20">20 (Excellente)</option>
+                <option value="23" selected>23 (Standard)</option>
+                <option value="28">28 (Fichier léger)</option>
+            </select>
+        </div>
 
-    <label>Qualité (CRF : 17 = Top, 23 = Standard)</label>
-    <input type="number" id="crf" value="17" min="0" max="51" oninput="generate()">
-
-    <label>Vitesse d'encodage (Preset)</label>
-    <select id="preset" onchange="generate()">
-        <option value="ultrafast">Ultrafast (Rapide, gros fichier)</option>
-        <option value="medium">Medium (Equilibré)</option>
-        <option value="slow" selected>Slow (Meilleure compression)</option>
-        <option value="veryslow">VerySlow (Optimisation maximale)</option>
-    </select>
-
-    <div class="output-box">
-        <code id="resultCommand">Remplissez les champs pour générer la commande...</code>
+        <div>
+            <label>Vitesse (Preset)</label>
+            <select id="preset" onchange="gen()">
+                <option value="ultrafast">Ultra rapide</option>
+                <option value="medium">Medium</option>
+                <option value="slow" selected>Slow (Mieux compressé)</option>
+            </select>
+        </div>
     </div>
-    <button onclick="copyCmd()">Copier la commande</button>
-    <div id="status" class="copy-hint"></div>
+
+    <div class="output-area">
+        <code id="cmd">En attente de données...</code>
+    </div>
+
+    <button class="btn-copy" onclick="copy()">Copier la commande</button>
+    <p id="notif" style="text-align: center; color: var(--accent); font-size: 0.8rem; margin-top: 10px; height: 1em;"></p>
 </div>
 
 <script>
-    function generate() {
-        const exe = document.getElementById('exePath').value || 'ffmpeg';
-        const input = document.getElementById('videoPath').value || '[CHEMIN_ENTREE]';
+    function gen() {
+        const exe = document.getElementById('exe').value || 'ffmpeg';
+        const src = document.getElementById('src').value;
         const crf = document.getElementById('crf').value;
         const preset = document.getElementById('preset').value;
-        
-        // Génération du nom de sortie automatique
-        let output = input.replace(/\.[^/.]+$/, "") + "_converted.mp4";
-        if(input === '[CHEMIN_ENTREE]') output = '[CHEMIN_SORTIE].mp4';
 
-        const cmd = `"${exe}" -i "${input}" -c:v libx264 -crf ${crf} -preset ${preset} -c:a aac -b:a 320k "${output}"`;
-        
-        document.getElementById('resultCommand').innerText = cmd;
+        if(!src) {
+            document.getElementById('cmd').innerText = "Entrez le chemin du fichier pour générer la commande.";
+            return;
+        }
+
+        // Gestion propre de l'extension de sortie
+        const out = src.substring(0, src.lastIndexOf(".")) + "_HQ.mp4";
+
+        const finalCmd = `"${exe}" -i "${src}" -c:v libx264 -crf ${crf} -preset ${preset} -c:a aac -b:a 320k "${out}"`;
+        document.getElementById('cmd').innerText = finalCmd;
     }
 
-    function copyCmd() {
-        const text = document.getElementById('resultCommand').innerText;
-        navigator.clipboard.writeText(text);
-        const status = document.getElementById('status');
-        status.innerText = "Copié dans le presse-papier ! ✅";
-        setTimeout(() => status.innerText = "", 2000);
+    async function copy() {
+        const text = document.getElementById('cmd').innerText;
+        await navigator.clipboard.writeText(text);
+        const n = document.getElementById('notif');
+        n.innerText = "COPIÉ ! Prêt à coller dans CMD ou PowerShell.";
+        setTimeout(() => n.innerText = "", 2500);
     }
-
-    // Initialisation
-    generate();
 </script>
 
 </body>
