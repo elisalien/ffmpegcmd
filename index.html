@@ -2,94 +2,453 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>FFmpeg Command Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFmpeg Generator</title>
     <style>
-        :root { --accent: #00f2ff; --bg: #0f172a; --card: #1e293b; }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: #f8fafc; display: flex; justify-content: center; padding: 40px 20px; margin: 0; }
-        .container { background: var(--card); padding: 2rem; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 100%; max-width: 700px; border: 1px solid #334155; }
-        h1 { font-size: 1.5rem; color: var(--accent); margin-bottom: 1.5rem; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 1rem; }
-        .grid { display: grid; gap: 15px; grid-template-columns: 1fr 1fr; }
-        .full { grid-column: span 2; }
-        label { display: block; margin-bottom: 5px; font-size: 0.85rem; color: #94a3b8; font-weight: 600; }
-        input, select { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 8px; box-sizing: border-box; transition: all 0.2s; }
-        input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.1); }
-        .output-area { margin-top: 30px; background: #020617; border-radius: 8px; padding: 20px; border: 1px dashed #475569; position: relative; }
-        code { display: block; word-break: break-all; font-family: 'Fira Code', monospace; color: #38bdf8; line-height: 1.5; }
-        .btn-copy { background: var(--accent); color: #0f172a; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 800; width: 100%; margin-top: 15px; text-transform: uppercase; transition: 0.3s; }
-        .btn-copy:hover { transform: translateY(-2px); filter: brightness(1.1); }
-        .badge { font-size: 0.7rem; background: #334155; padding: 2px 8px; border-radius: 10px; margin-left: 5px; }
+        /* === Variables === */
+        :root {
+            --accent:      #00f2ff;
+            --accent-glow: rgba(0, 242, 255, 0.12);
+            --bg:          #0f172a;
+            --card:        #1e293b;
+            --inset:       #080f1e;
+            --border:      #334155;
+            --border-dim:  #475569;
+            --text:        #f0f6fc;
+            --muted:       #94a3b8;
+            --dim:         #64748b;
+            --green:       #4ade80;
+            --code:        #7dd3fc;
+            --r:           8px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 48px 20px;
+        }
+
+        /* === Layout === */
+        .app {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+        }
+
+        /* === Header === */
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1.2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .app-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: -0.02em;
+        }
+
+        .app-version {
+            font-size: 0.68rem;
+            background: var(--border);
+            color: var(--dim);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        /* === Sections === */
+        .section + .section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .section-label {
+            font-size: 0.67rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--dim);
+            margin-bottom: 0.85rem;
+        }
+
+        /* === Grids === */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        .span-2 { grid-column: span 2; }
+        .span-3 { grid-column: span 3; }
+
+        /* === Fields === */
+        .field { display: flex; flex-direction: column; gap: 6px; }
+
+        label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        label .hint {
+            font-weight: 400;
+            color: var(--dim);
+            margin-left: 4px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--inset);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: var(--r);
+            font-size: 0.85rem;
+            font-family: inherit;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        option { background: #1e293b; color: var(--text); }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 10px;
+            padding-right: 34px;
+            cursor: pointer;
+        }
+
+        select:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* === Output === */
+        .output-box {
+            background: var(--inset);
+            border: 1px dashed var(--border-dim);
+            border-radius: var(--r);
+            padding: 18px;
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+        }
+
+        code {
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.82rem;
+            color: var(--code);
+            line-height: 1.65;
+            word-break: break-all;
+        }
+
+        /* === Button === */
+        .btn-copy {
+            width: 100%;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            padding: 12px;
+            border-radius: var(--r);
+            font-weight: 800;
+            font-size: 0.82rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: filter 0.15s, transform 0.15s;
+        }
+
+        .btn-copy:hover  { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-copy:active { filter: brightness(0.9); transform: none; }
+
+        .notif {
+            height: 1.4em;
+            margin-top: 8px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--green);
+            letter-spacing: 0.03em;
+        }
+
+        /* === Responsive === */
+        @media (max-width: 540px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .span-2, .span-3 { grid-column: span 1; }
+            body { padding: 20px 12px; }
+            .card { padding: 1.4rem; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>⚡ FFmpeg Generator <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">v2026</span></h1>
-    
-    <div class="grid">
-        <div class="full">
-            <label>Chemin de l'exécutable <span class="badge">ffmpeg.exe</span></label>
-            <input type="text" id="exe" value="C:\ffmpeg\bin\ffmpeg.exe" oninput="gen()">
-        </div>
-        
-        <div class="full">
-            <label>Fichier source (MKV, MP4, MOV...)</label>
-            <input type="text" id="src" placeholder="C:\Users\Ellie\Downloads\video.mkv" oninput="gen()">
-        </div>
+<div class="app">
+<div class="card">
 
-        <div>
-            <label>Qualité (CRF)</label>
-            <select id="crf" onchange="gen()">
-                <option value="17">17 (Ultra Haute)</option>
-                <option value="20">20 (Excellente)</option>
-                <option value="23" selected>23 (Standard)</option>
-                <option value="28">28 (Fichier léger)</option>
-            </select>
-        </div>
+    <!-- Header -->
+    <div class="app-header">
+        <span class="app-title">⚡ FFmpeg Generator</span>
+        <span class="app-version">v2026</span>
+    </div>
 
-        <div>
-            <label>Vitesse (Preset)</label>
-            <select id="preset" onchange="gen()">
-                <option value="ultrafast">Ultra rapide</option>
-                <option value="medium">Medium</option>
-                <option value="slow" selected>Slow (Mieux compressé)</option>
-            </select>
+    <!-- Chemins -->
+    <div class="section">
+        <div class="section-label">Chemins</div>
+        <div class="grid-2">
+            <div class="field span-2">
+                <label>Exécutable FFmpeg</label>
+                <input type="text" id="exe" value="C:\ffmpeg\bin\ffmpeg.exe" oninput="onPathInput(this)">
+            </div>
+            <div class="field span-2">
+                <label>
+                    Fichier source
+                    <span class="hint">— MKV, MP4, MOV, AVI... (coller avec ou sans guillemets)</span>
+                </label>
+                <input type="text" id="src" placeholder="C:\Users\Ellie\Downloads\video.mkv" oninput="onPathInput(this)">
+            </div>
         </div>
     </div>
 
-    <div class="output-area">
-        <code id="cmd">En attente de données...</code>
+    <!-- Format de sortie -->
+    <div class="section">
+        <div class="section-label">Format de sortie</div>
+        <div class="grid-3">
+            <div class="field">
+                <label>Conteneur</label>
+                <select id="format" onchange="onFormatChange()">
+                    <option value="mp4">MP4</option>
+                    <option value="mkv">MKV</option>
+                    <option value="webm">WebM</option>
+                    <option value="mov">MOV</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Codec vidéo</label>
+                <select id="vcodec" onchange="gen()"></select>
+            </div>
+            <div class="field">
+                <label>Audio</label>
+                <select id="acodec" onchange="gen()"></select>
+            </div>
+        </div>
     </div>
 
-    <button class="btn-copy" onclick="copy()">Copier la commande</button>
-    <p id="notif" style="text-align: center; color: var(--accent); font-size: 0.8rem; margin-top: 10px; height: 1em;"></p>
+    <!-- Encodage -->
+    <div class="section">
+        <div class="section-label">Encodage</div>
+        <div class="grid-2">
+            <div class="field">
+                <label>Qualité (CRF)</label>
+                <select id="crf" onchange="gen()">
+                    <option value="17">17 — Ultra Haute</option>
+                    <option value="20">20 — Excellente</option>
+                    <option value="23" selected>23 — Standard</option>
+                    <option value="28">28 — Fichier léger</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Vitesse (Preset)</label>
+                <select id="preset" onchange="gen()">
+                    <option value="ultrafast">Ultra rapide</option>
+                    <option value="medium">Medium</option>
+                    <option value="slow" selected>Slow — Meilleure compression</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commande générée -->
+    <div class="section">
+        <div class="section-label">Commande générée</div>
+        <div class="output-box">
+            <code id="cmd">Entrez le chemin du fichier source pour générer la commande.</code>
+        </div>
+        <button class="btn-copy" onclick="copyCmd()">⧉ Copier la commande</button>
+        <p id="notif" class="notif"></p>
+    </div>
+
+</div>
 </div>
 
 <script>
-    function gen() {
-        const exe = document.getElementById('exe').value || 'ffmpeg';
-        const src = document.getElementById('src').value;
-        const crf = document.getElementById('crf').value;
-        const preset = document.getElementById('preset').value;
+    // ─── Format / Codec Configuration ────────────────────────────────────────
 
-        if(!src) {
-            document.getElementById('cmd').innerText = "Entrez le chemin du fichier pour générer la commande.";
+    const FORMATS = {
+        mp4: {
+            vcodecs: [
+                { v: 'libx264',    l: 'H.264 (libx264)' },
+                { v: 'libx265',    l: 'H.265 / HEVC (libx265)' },
+            ],
+            acodecs: [
+                { v: 'aac',     b: '320k', l: 'AAC 320k' },
+                { v: 'aac',     b: '192k', l: 'AAC 192k' },
+                { v: 'copy',    b: null,   l: 'Copier (sans ré-encodage)' },
+            ],
+            preset: true,
+        },
+        mkv: {
+            vcodecs: [
+                { v: 'libx264',    l: 'H.264 (libx264)' },
+                { v: 'libx265',    l: 'H.265 / HEVC (libx265)' },
+                { v: 'libvpx-vp9', l: 'VP9 (libvpx-vp9)' },
+            ],
+            acodecs: [
+                { v: 'aac',     b: '320k', l: 'AAC 320k' },
+                { v: 'aac',     b: '192k', l: 'AAC 192k' },
+                { v: 'libopus', b: '192k', l: 'Opus 192k' },
+                { v: 'copy',    b: null,   l: 'Copier (sans ré-encodage)' },
+            ],
+            preset: true,
+        },
+        webm: {
+            vcodecs: [
+                { v: 'libvpx-vp9', l: 'VP9 (libvpx-vp9)' },
+                { v: 'libvpx',     l: 'VP8 (libvpx)' },
+            ],
+            acodecs: [
+                { v: 'libopus',   b: '192k', l: 'Opus 192k' },
+                { v: 'libvorbis', b: '192k', l: 'Vorbis 192k' },
+                { v: 'copy',      b: null,   l: 'Copier (sans ré-encodage)' },
+            ],
+            preset: false,
+        },
+        mov: {
+            vcodecs: [
+                { v: 'libx264', l: 'H.264 (libx264)' },
+                { v: 'libx265', l: 'H.265 / HEVC (libx265)' },
+            ],
+            acodecs: [
+                { v: 'aac',  b: '320k', l: 'AAC 320k' },
+                { v: 'aac',  b: '192k', l: 'AAC 192k' },
+                { v: 'copy', b: null,   l: 'Copier (sans ré-encodage)' },
+            ],
+            preset: true,
+        },
+    };
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+
+    function init() {
+        populateCodecs('mp4');
+    }
+
+    // ─── Codec population ─────────────────────────────────────────────────────
+
+    function populateCodecs(fmt) {
+        const { vcodecs, acodecs, preset } = FORMATS[fmt];
+
+        setOptions('vcodec', vcodecs.map(c => `<option value="${c.v}">${c.l}</option>`));
+        setOptions('acodec', acodecs.map(c => `<option value="${encodeAudio(c)}">${c.l}</option>`));
+
+        const presetEl = document.getElementById('preset');
+        presetEl.disabled = !preset;
+    }
+
+    function setOptions(id, options) {
+        document.getElementById(id).innerHTML = options.join('');
+    }
+
+    // Audio options are encoded as "codec|bitrate" or "copy"
+    function encodeAudio({ v, b }) {
+        return b ? `${v}|${b}` : 'copy';
+    }
+
+    function onFormatChange() {
+        populateCodecs(document.getElementById('format').value);
+        gen();
+    }
+
+    // ─── Copy-as-Path Handling ────────────────────────────────────────────────
+    // Windows "Copier comme chemin d'accès" entoure le chemin de guillemets.
+
+    function stripQuotes(s) {
+        return s.trim().replace(/^"(.*)"$/, '$1');
+    }
+
+    function onPathInput(el) {
+        const clean = stripQuotes(el.value);
+        if (clean !== el.value) el.value = clean;
+        gen();
+    }
+
+    // ─── Command Generation ───────────────────────────────────────────────────
+
+    function gen() {
+        const exe    = stripQuotes(document.getElementById('exe').value) || 'ffmpeg';
+        const src    = document.getElementById('src').value;
+        const fmt    = document.getElementById('format').value;
+        const crf    = document.getElementById('crf').value;
+        const preset = document.getElementById('preset').value;
+        const vcodec = document.getElementById('vcodec').value;
+        const araw   = document.getElementById('acodec').value;
+
+        if (!src) {
+            setCmd('Entrez le chemin du fichier source pour générer la commande.');
             return;
         }
 
-        // Gestion propre de l'extension de sortie
-        const out = src.substring(0, src.lastIndexOf(".")) + "_HQ.mp4";
+        const dotIdx = src.lastIndexOf('.');
+        const base   = dotIdx > 0 ? src.substring(0, dotIdx) : src;
+        const out    = `${base}_HQ.${fmt}`;
 
-        const finalCmd = `"${exe}" -i "${src}" -c:v libx264 -crf ${crf} -preset ${preset} -c:a aac -b:a 320k "${out}"`;
-        document.getElementById('cmd').innerText = finalCmd;
+        const videoFlags = buildVideoFlags(vcodec, crf, preset, FORMATS[fmt].preset);
+        const audioFlags = buildAudioFlags(araw);
+
+        setCmd(`"${exe}" -i "${src}" ${videoFlags} ${audioFlags} "${out}"`);
     }
 
-    async function copy() {
+    function buildVideoFlags(vcodec, crf, preset, hasPreset) {
+        // VP9 and VP8 use -b:v 0 alongside -crf; preset doesn't apply
+        if (vcodec === 'libvpx-vp9' || vcodec === 'libvpx') {
+            return `-c:v ${vcodec} -b:v 0 -crf ${crf}`;
+        }
+        return `-c:v ${vcodec} -crf ${crf}${hasPreset ? ` -preset ${preset}` : ''}`;
+    }
+
+    function buildAudioFlags(raw) {
+        if (raw === 'copy') return '-c:a copy';
+        const [codec, bitrate] = raw.split('|');
+        return `-c:a ${codec} -b:a ${bitrate}`;
+    }
+
+    function setCmd(text) {
+        document.getElementById('cmd').innerText = text;
+    }
+
+    // ─── Copy to Clipboard ────────────────────────────────────────────────────
+
+    async function copyCmd() {
         const text = document.getElementById('cmd').innerText;
+        if (text.startsWith('Entrez')) return;
+
         await navigator.clipboard.writeText(text);
         const n = document.getElementById('notif');
-        n.innerText = "COPIÉ ! Prêt à coller dans CMD ou PowerShell.";
-        setTimeout(() => n.innerText = "", 2500);
+        n.innerText = '✔ COPIÉ — Prêt à coller dans CMD ou PowerShell.';
+        setTimeout(() => n.innerText = '', 2500);
     }
+
+    init();
 </script>
 
 </body>
