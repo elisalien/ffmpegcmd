@@ -217,11 +217,18 @@
         <div class="section-label">Chemins</div>
         <div class="grid-2">
             <div class="field span-2">
+                <label>Mode</label>
+                <select id="mode" onchange="onModeChange()">
+                    <option value="single">Fichier unique</option>
+                    <option value="batch">Dossier (batch PowerShell)</option>
+                </select>
+            </div>
+            <div class="field span-2">
                 <label>Exécutable FFmpeg</label>
                 <input type="text" id="exe" value="C:\ffmpeg\bin\ffmpeg.exe" oninput="onPathInput(this)">
             </div>
             <div class="field span-2">
-                <label>
+                <label id="srcLabel">
                     Fichier source
                     <span class="hint">— MKV, MP4, MOV, AVI... (coller avec ou sans guillemets)</span>
                 </label>
@@ -379,6 +386,16 @@
         gen();
     }
 
+    function onModeChange() {
+        const batch = document.getElementById('mode').value === 'batch';
+        const src   = document.getElementById('src');
+        document.getElementById('srcLabel').innerHTML = batch
+            ? 'Dossier source <span class="hint">— Tous les MKV, MP4, MOV, AVI, WebM du dossier seront convertis</span>'
+            : 'Fichier source <span class="hint">— MKV, MP4, MOV, AVI... (coller avec ou sans guillemets)</span>';
+        src.placeholder = batch ? 'C:\\Users\\Ellie\\Videos' : 'C:\\Users\\Ellie\\Downloads\\video.mkv';
+        gen();
+    }
+
     // ─── Copy-as-Path Handling ────────────────────────────────────────────────
     // Windows "Copier comme chemin d'accès" entoure le chemin de guillemets.
 
@@ -402,18 +419,28 @@
         const preset = document.getElementById('preset').value;
         const vcodec = document.getElementById('vcodec').value;
         const araw   = document.getElementById('acodec').value;
+        const batch  = document.getElementById('mode').value === 'batch';
 
         if (!src) {
-            setCmd('Entrez le chemin du fichier source pour générer la commande.');
+            setCmd(batch
+                ? 'Entrez le chemin du dossier source pour générer la commande.'
+                : 'Entrez le chemin du fichier source pour générer la commande.');
+            return;
+        }
+
+        const videoFlags = buildVideoFlags(vcodec, crf, preset, FORMATS[fmt].preset);
+        const audioFlags = buildAudioFlags(araw);
+
+        if (batch) {
+            const dir  = src.replace(/[\\/]+$/, '');
+            const exts = '*.mkv,*.mp4,*.mov,*.avi,*.webm,*.flv,*.m4v,*.ts';
+            setCmd(`Get-ChildItem -Path "${dir}\\*" -Include ${exts} -File | ForEach-Object { & "${exe}" -i $_.FullName ${videoFlags} ${audioFlags} "$($_.DirectoryName)\\$($_.BaseName)_HQ.${fmt}" }`);
             return;
         }
 
         const dotIdx = src.lastIndexOf('.');
         const base   = dotIdx > 0 ? src.substring(0, dotIdx) : src;
         const out    = `${base}_HQ.${fmt}`;
-
-        const videoFlags = buildVideoFlags(vcodec, crf, preset, FORMATS[fmt].preset);
-        const audioFlags = buildAudioFlags(araw);
 
         setCmd(`"${exe}" -i "${src}" ${videoFlags} ${audioFlags} "${out}"`);
     }
@@ -444,7 +471,10 @@
 
         await navigator.clipboard.writeText(text);
         const n = document.getElementById('notif');
-        n.innerText = '✔ COPIÉ — Prêt à coller dans CMD ou PowerShell.';
+        const batch = document.getElementById('mode').value === 'batch';
+        n.innerText = batch
+            ? '✔ COPIÉ — À coller dans PowerShell.'
+            : '✔ COPIÉ — Prêt à coller dans CMD ou PowerShell.';
         setTimeout(() => n.innerText = '', 2500);
     }
 
